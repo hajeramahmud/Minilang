@@ -1,5 +1,9 @@
+
 %{
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../parser/parser.tab.hpp"
 %}
 
 %option noyywrap
@@ -10,45 +14,45 @@ ID      {LETTER}({LETTER}|{DIGIT})*
 
 %%
 
-"int"|"float"|"bool"|"if"|"else"|"while"|"print" {
-    printf("KEYWORD: %s\n", yytext);
-}
+"int"       { return INT; }
+"float"     { return FLOAT; }
+"bool"      { return BOOL; }
+"if"        { return IF; }
+"else"      { return ELSE; }
+"while"     { return WHILE; }
+"print"     { return PRINT; }
 
-"=="|"!="|"<="|">="|"&&"|"||" {
-    printf("OPERATOR: %s\n", yytext);
-}
-
-[+\-*/%<>=!] {
-    printf("OPERATOR: %s\n", yytext);
-}
+"=="        { return EQ; }
+"!="        { return NE; }
+"<="        { return LE; }
+">="        { return GE; }
+"&&"        { return AND; }
+"||"        { return OR; }
 
 {DIGIT}+"."{DIGIT}+ {
-    printf("FLOAT: %s\n", yytext);
+    yylval.text = strdup(yytext);
+    return FLOAT_LITERAL;
 }
 
 {DIGIT}+ {
-    printf("INTEGER: %s\n", yytext);
+    yylval.text = strdup(yytext);
+    return INTEGER_LITERAL;
 }
 
 {ID} {
-    printf("IDENTIFIER: %s\n", yytext);
+    yylval.text = strdup(yytext);
+    return IDENTIFIER;
 }
 
-[;(),{}] {
-    printf("DELIMITER: %s\n", yytext);
+[+\-*/%<>=!;(),{}] {
+    return yytext[0];
 }
 
-[ \t\r\n]+   { /* Ignore whitespace */ }
+[ \t\r\n]+  { /* Ignore whitespace */ }
 
 . {
-    printf("LEXICAL ERROR: %s\n", yytext);
+    fprintf(stderr, "Lexical error: unexpected character '%s'\n", yytext);
+    return yytext[0];
 }
 
 %%
-
-int main(void)
-{
-    printf("Enter MiniLang code:\n");
-    yylex();
-    return 0;
-}
