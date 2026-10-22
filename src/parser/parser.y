@@ -18,7 +18,8 @@ Program* root = nullptr;
 %}
 
 %define parse.error detailed
-
+%precedence LOWER_THAN_ELSE
+%precedence ELSE
 %union {
     char* text;
     Expr* expr;
@@ -33,7 +34,8 @@ Program* root = nullptr;
 
 
 %type <program> program
-%type <stmt> statement declaration assignment print_statement if_statement while_statement
+%type <stmt> statement declaration assignment print_statement
+%type <stmt> if_statement while_statement
 %type <block> statement_list block
 %type <expr> expression
 
@@ -43,7 +45,7 @@ Program* root = nullptr;
 %left '<' '>' LE GE
 %left '+' '-'
 %left '*' '/' '%'
-%right '!' UMINUS
+%precedence '!' UMINUS
 
 %start program
 
@@ -113,7 +115,7 @@ print_statement:
 ;
 
 if_statement:
-    IF '(' expression ')' statement
+    IF '(' expression ')' statement %prec LOWER_THAN_ELSE
     {
         $$ = new IfStmt($3, $5);
     }
