@@ -1,4 +1,3 @@
-
 package tac;
 
 import java.util.ArrayList;
@@ -6,11 +5,9 @@ import java.util.List;
 
 public class TACGenerator {
 
-    // Expression interface
     interface Expr {
     }
 
-    // Variable expression, e.g. a
     static class Variable implements Expr {
         String name;
 
@@ -19,7 +16,6 @@ public class TACGenerator {
         }
     }
 
-    // Literal expression, e.g. 10 or 3.5
     static class Literal implements Expr {
         String value;
 
@@ -28,7 +24,6 @@ public class TACGenerator {
         }
     }
 
-    // Binary expression, e.g. a + b
     static class Binary implements Expr {
         Expr left;
         String operator;
@@ -42,15 +37,20 @@ public class TACGenerator {
     }
 
     private final List<String> instructions = new ArrayList<>();
-    private int tempCount = 0;
 
-    // Generate a new temporary variable
+    private int tempCount = 0;
+    private int labelCount = 0;
+
     private String newTemp() {
         tempCount++;
         return "t" + tempCount;
     }
 
-    // Convert an expression into TAC
+    private String newLabel() {
+        labelCount++;
+        return "L" + labelCount;
+    }
+
     public String generateExpression(Expr expr) {
 
         if (expr instanceof Variable) {
@@ -62,9 +62,9 @@ public class TACGenerator {
         }
 
         if (expr instanceof Binary) {
+
             Binary binary = (Binary) expr;
 
-            // Generate left and right expressions first
             String left = generateExpression(binary.left);
             String right = generateExpression(binary.right);
 
@@ -83,63 +83,243 @@ public class TACGenerator {
         );
     }
 
-    // Generate TAC for an assignment
     public void generateAssignment(String variable, Expr expr) {
+
         String result = generateExpression(expr);
-        instructions.add(variable + " = " + result);
+
+        instructions.add(
+            variable + " = " + result
+        );
     }
 
-    // Generate TAC for print
     public void generatePrint(Expr expr) {
+
         String result = generateExpression(expr);
-        instructions.add("print " + result);
+
+        instructions.add(
+            "print " + result
+        );
     }
 
-    // Display generated instructions
+    // Generate IF statement
+    public void generateIf(
+            Expr condition,
+            List<String> thenStatements) {
+
+        String conditionResult =
+            generateExpression(condition);
+
+        String trueLabel = newLabel();
+        String endLabel = newLabel();
+
+        instructions.add(
+            "if " + conditionResult +
+            " goto " + trueLabel
+        );
+
+        instructions.add(
+            "goto " + endLabel
+        );
+
+        instructions.add(
+            trueLabel + ":"
+        );
+
+        instructions.addAll(thenStatements);
+
+        instructions.add(
+            endLabel + ":"
+        );
+    }
+
+    // Generate IF-ELSE statement
+    public void generateIfElse(
+            Expr condition,
+            List<String> thenStatements,
+            List<String> elseStatements) {
+
+        String conditionResult =
+            generateExpression(condition);
+
+        String trueLabel = newLabel();
+        String falseLabel = newLabel();
+        String endLabel = newLabel();
+
+        instructions.add(
+            "if " + conditionResult +
+            " goto " + trueLabel
+        );
+
+        instructions.add(
+            "goto " + falseLabel
+        );
+
+        instructions.add(
+            trueLabel + ":"
+        );
+
+        instructions.addAll(thenStatements);
+
+        instructions.add(
+            "goto " + endLabel
+        );
+
+        instructions.add(
+            falseLabel + ":"
+        );
+
+        instructions.addAll(elseStatements);
+
+        instructions.add(
+            endLabel + ":"
+        );
+    }
+
+    // Generate WHILE loop
+    public void generateWhile(
+            Expr condition,
+            List<String> bodyStatements) {
+
+        String startLabel = newLabel();
+        String bodyLabel = newLabel();
+        String endLabel = newLabel();
+
+        instructions.add(
+            startLabel + ":"
+        );
+
+        String conditionResult =
+            generateExpression(condition);
+
+        instructions.add(
+            "if " + conditionResult +
+            " goto " + bodyLabel
+        );
+
+        instructions.add(
+            "goto " + endLabel
+        );
+
+        instructions.add(
+            bodyLabel + ":"
+        );
+
+        instructions.addAll(bodyStatements);
+
+        instructions.add(
+            "goto " + startLabel
+        );
+
+        instructions.add(
+            endLabel + ":"
+        );
+    }
+
     public void printTAC() {
-        System.out.println("\n--- Three Address Code ---");
+
+        System.out.println(
+            "\n--- Three Address Code ---"
+        );
 
         for (String instruction : instructions) {
             System.out.println(instruction);
         }
     }
 
-    // Simple standalone test
     public static void main(String[] args) {
 
-        TACGenerator generator = new TACGenerator();
+        TACGenerator generator =
+            new TACGenerator();
 
-        System.out.println("=== TAC Generator Test ===");
-
-        // Test 1: a = b + c * d
-        Expr multiplication = new Binary(
-            new Variable("c"),
-            "*",
-            new Variable("d")
+        System.out.println(
+            "=== Control-Flow TAC Test ==="
         );
 
-        Expr addition = new Binary(
-            new Variable("b"),
-            "+",
-            multiplication
+        /*
+         * Test 1:
+         *
+         * if (a < b)
+         *     x = 1;
+         */
+
+        Expr ifCondition =
+            new Binary(
+                new Variable("a"),
+                "<",
+                new Variable("b")
+            );
+
+        List<String> ifBody =
+            new ArrayList<>();
+
+        ifBody.add("x = 1");
+
+        generator.generateIf(
+            ifCondition,
+            ifBody
         );
 
-        generator.generateAssignment("a", addition);
+        /*
+         * Test 2:
+         *
+         * if (a < b)
+         *     x = 1;
+         * else
+         *     x = 2;
+         */
 
-        // Test 2: x = a - 10
-        Expr subtraction = new Binary(
-            new Variable("a"),
-            "-",
-            new Literal("10")
+        Expr ifElseCondition =
+            new Binary(
+                new Variable("a"),
+                "<",
+                new Variable("b")
+            );
+
+        List<String> thenBody =
+            new ArrayList<>();
+
+        thenBody.add("x = 1");
+
+        List<String> elseBody =
+            new ArrayList<>();
+
+        elseBody.add("x = 2");
+
+        generator.generateIfElse(
+            ifElseCondition,
+            thenBody,
+            elseBody
         );
 
-        generator.generateAssignment("x", subtraction);
+        /*
+         * Test 3:
+         *
+         * while (a < 10)
+         *     a = a + 1;
+         */
 
-        // Test 3: print x
-        generator.generatePrint(new Variable("x"));
+        Expr whileCondition =
+            new Binary(
+                new Variable("a"),
+                "<",
+                new Literal("10")
+            );
+
+        List<String> whileBody =
+            new ArrayList<>();
+
+        whileBody.add("t = a + 1");
+        whileBody.add("a = t");
+
+        generator.generateWhile(
+            whileCondition,
+            whileBody
+        );
 
         generator.printTAC();
 
-        System.out.println("\n=== Test Finished ===");
+        System.out.println(
+            "\n=== Test Finished ==="
+        );
     }
 }
