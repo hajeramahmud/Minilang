@@ -1,3 +1,16 @@
+# Generated parser files
+src/parser/parser.tab.cpp
+src/parser/parser.tab.hpp
+
+# Generated lexer file
+src/lexer/lex.yy.c
+
+# Compiled executables
+*.exe
+
+# Generated AST output
+ast.txt
+
 # Java compiled files
 *.class
 
