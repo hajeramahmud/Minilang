@@ -102,6 +102,18 @@ public class TACGenerator {
     }
 
     // Generate IF statement
+    public int getInstructionCount() {
+        return instructions.size();
+    }
+
+    public List<String> getInstructionsFrom(int start) {
+        return new ArrayList<>(instructions.subList(start, instructions.size()));
+    }
+
+    public void truncateInstructions(int start) {
+        instructions.subList(start, instructions.size()).clear();
+    }
+
     public void generateIf(
             Expr condition,
             List<String> thenStatements) {

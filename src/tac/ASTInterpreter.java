@@ -92,59 +92,129 @@ public class ASTInterpreter {
         );
     }
 
+    private List<String> captureBlock() {
+        int start = generator.getInstructionCount();
+
+        while (position < lines.size()) {
+            String line = lines.get(position).trim();
+
+            if (line.equals("END_BLOCK")) {
+                position++;
+                List<String> result = generator.getInstructionsFrom(start);
+                generator.truncateInstructions(start);
+                return result;
+            }
+
+            processStatement();
+        }
+
+        throw new IllegalArgumentException("Missing END_BLOCK.");
+    }
+
+    private void processStatement() {
+        String line = nextLine();
+
+        if (line.startsWith("VAR_DECL ")) {
+            String[] parts = line.split("\\s+", 3);
+            if (parts.length != 3) {
+                throw new IllegalArgumentException("Invalid declaration: " + line);
+            }
+            analyzer.declareVariable(parts[2], parts[1]);
+
+        } else if (line.startsWith("ASSIGN ")) {
+            String variable = line.substring(7).trim();
+            TypedExpr value = parseExpression();
+            if (value.type != null
+                    && analyzer.checkAssignment(variable, value.type)) {
+                generator.generateAssignment(variable, value.expression);
+            }
+
+        } else if (line.equals("PRINT")) {
+            TypedExpr value = parseExpression();
+            if (value.type != null) {
+                generator.generatePrint(value.expression);
+            }
+
+        } else if (line.equals("IF")) {
+            TypedExpr condition = parseExpression();
+
+            if (!nextLine().equals("THEN")) {
+                throw new IllegalArgumentException("Expected THEN after IF condition.");
+            }
+            if (!nextLine().equals("BLOCK")) {
+                throw new IllegalArgumentException("Expected BLOCK after THEN.");
+            }
+
+            List<String> thenStatements = captureBlock();
+            String marker = nextLine();
+
+            if (!"bool".equals(condition.type)) {
+                throw new IllegalArgumentException("IF condition must have bool type.");
+            }
+
+            if (marker.equals("ELSE")) {
+                if (!nextLine().equals("BLOCK")) {
+                    throw new IllegalArgumentException("Expected BLOCK after ELSE.");
+                }
+
+                List<String> elseStatements = captureBlock();
+                if (!nextLine().equals("END_IF")) {
+                    throw new IllegalArgumentException("Expected END_IF.");
+                }
+
+                generator.generateIfElse(
+                        condition.expression, thenStatements, elseStatements
+                );
+
+            } else if (marker.equals("END_IF")) {
+                generator.generateIf(condition.expression, thenStatements);
+
+            } else {
+                throw new IllegalArgumentException(
+                        "Expected ELSE or END_IF, found: " + marker
+                );
+            }
+
+        } else if (line.equals("WHILE")) {
+            TypedExpr condition = parseExpression();
+
+            if (!"bool".equals(condition.type)) {
+                throw new IllegalArgumentException("WHILE condition must have bool type.");
+            }
+            if (!nextLine().equals("BLOCK")) {
+                throw new IllegalArgumentException("Expected BLOCK after WHILE condition.");
+            }
+
+            List<String> bodyStatements = captureBlock();
+            if (!nextLine().equals("END_WHILE")) {
+                throw new IllegalArgumentException("Expected END_WHILE.");
+            }
+
+            generator.generateWhile(condition.expression, bodyStatements);
+
+        } else {
+            throw new IllegalArgumentException("Unsupported statement: " + line);
+        }
+    }
+
     public void process() {
         while (position < lines.size()) {
-            String line = nextLine();
+            String line = lines.get(position).trim();
 
-            if (line.equals("PROGRAM")
-                    || line.equals("END_PROGRAM")) {
+            if (line.equals("PROGRAM") || line.equals("END_PROGRAM")) {
+                position++;
                 continue;
             }
 
-            if (line.startsWith("VAR_DECL ")) {
-                String[] parts = line.split("\\s+", 3);
-
-                if (parts.length != 3) {
-                    throw new IllegalArgumentException(
-                            "Invalid declaration: " + line
-                    );
-                }
-
-                analyzer.declareVariable(parts[2], parts[1]);
-            } else if (line.startsWith("ASSIGN ")) {
-                String variable = line.substring(7).trim();
-                TypedExpr value = parseExpression();
-
-                if (value.type != null
-                        && analyzer.checkAssignment(
-                                variable, value.type)) {
-                    generator.generateAssignment(
-                            variable, value.expression
-                    );
-                }
-            } else if (line.equals("PRINT")) {
-                TypedExpr value = parseExpression();
-
-                if (value.type != null) {
-                    generator.generatePrint(value.expression);
-                }
-            } else {
-                throw new IllegalArgumentException(
-                        "Unsupported statement: " + line
-                );
-            }
+            processStatement();
         }
 
         analyzer.printSymbolTable();
 
         if (analyzer.hasErrors()) {
-            System.out.println(
-                    "\nSemantic analysis failed. TAC not displayed."
-            );
+            System.out.println("\nSemantic analysis failed. TAC not displayed.");
         } else {
-            System.out.println(
-                    "\nSemantic analysis successful."
-            );
+            System.out.println("\nSemantic analysis successful.");
             generator.printTAC();
         }
     }
