@@ -1,0 +1,11 @@
+int x;
+int y;
+bool flag;
+
+x = -10;
+y = -x;
+flag = !true;
+
+print(x);
+print(y);
+print(flag);

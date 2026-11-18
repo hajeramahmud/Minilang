@@ -54,12 +54,54 @@ public class ASTInterpreter {
             );
         }
 
+        if (line.equals("TRUE")) {
+            return new TypedExpr(
+                    new TACGenerator.Literal("true"), "bool"
+            );
+        }
+
+        if (line.equals("FALSE")) {
+            return new TypedExpr(
+                    new TACGenerator.Literal("false"), "bool"
+            );
+        }
+
+        if (line.equals("IDENTIFIER true")) {
+            return new TypedExpr(
+                    new TACGenerator.Literal("true"), "bool"
+            );
+        }
+
+        if (line.equals("IDENTIFIER false")) {
+            return new TypedExpr(
+                    new TACGenerator.Literal("false"), "bool"
+            );
+        }
+
         if (line.startsWith("IDENTIFIER ")) {
             String name = line.substring(11).trim();
             String type = analyzer.getType(name);
 
             return new TypedExpr(
                     new TACGenerator.Variable(name), type
+            );
+        }
+
+        if (line.startsWith("UNARY ")) {
+            String operator = line.substring(6).trim();
+            TypedExpr operand = parseExpression();
+
+            String resultType = null;
+
+            if (operand.type != null) {
+                resultType = analyzer.checkUnaryOperation(
+                        operator, operand.type
+                );
+            }
+
+            return new TypedExpr(
+                    new TACGenerator.Unary(operator, operand.expression),
+                    resultType
             );
         }
 

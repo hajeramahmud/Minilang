@@ -36,6 +36,16 @@ public class TACGenerator {
         }
     }
 
+    static class Unary implements Expr {
+    String operator;
+    Expr operand;
+
+        Unary(String operator, Expr operand) {
+           this.operator = operator;
+           this.operand = operand;
+       }
+    }
+
     private final List<String> instructions = new ArrayList<>();
 
     private int tempCount = 0;
@@ -52,7 +62,6 @@ public class TACGenerator {
     }
 
     public String generateExpression(Expr expr) {
-
         if (expr instanceof Variable) {
             return ((Variable) expr).name;
         }
@@ -61,25 +70,36 @@ public class TACGenerator {
             return ((Literal) expr).value;
         }
 
-        if (expr instanceof Binary) {
+        if (expr instanceof Unary) {
+            Unary unary = (Unary) expr;
+            String operand = generateExpression(unary.operand);
+            String temp = newTemp();
 
+            instructions.add(
+                temp + " = " + unary.operator + " " + operand
+            );
+
+            return temp;
+        }
+
+        if (expr instanceof Binary) {
             Binary binary = (Binary) expr;
 
             String left = generateExpression(binary.left);
             String right = generateExpression(binary.right);
-
             String temp = newTemp();
 
             instructions.add(
-                temp + " = " + left + " "
-                + binary.operator + " " + right
+                temp + " = " + left +
+                " " + binary.operator +
+                " " + right
             );
 
             return temp;
         }
 
         throw new IllegalArgumentException(
-            "Unsupported expression type"
+                "Unsupported expression type"
         );
     }
 

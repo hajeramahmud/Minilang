@@ -106,6 +106,7 @@ public class SemanticAnalyzer {
         // Arithmetic operators
         if (operator.equals("+") ||
             operator.equals("-") ||
+            operator.equals("%") ||
             operator.equals("*") ||
             operator.equals("/")) {
 
@@ -175,6 +176,10 @@ public class SemanticAnalyzer {
     public String checkUnaryOperation(
             String operator,
             String operandType) {
+
+        if (operandType == null) {
+                return null;
+            }        
 
         if (operator.equals("!")) {
 

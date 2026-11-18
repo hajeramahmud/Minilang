@@ -1,0 +1,8 @@
+int x;
+int y;
+
+x = 10 % 3;
+y = 20 % 6;
+
+print(x);
+print(y);
