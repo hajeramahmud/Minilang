@@ -230,6 +230,21 @@ public class SemanticAnalyzer {
         hasError = true;
         System.out.println("Semantic Error: " + message);
     }
+    
+    // Check IF and WHILE condition type
+    public boolean checkCondition(String conditionType, String context) {
+
+        if (conditionType == null) {
+            return false;
+        }
+         
+        if (!conditionType.equals("bool")) {
+           reportError(context + " condition must have bool type."); 
+           return false;
+        }
+
+        return true;
+    }
 
     // Check whether any error occurred
     public boolean hasErrors() {
